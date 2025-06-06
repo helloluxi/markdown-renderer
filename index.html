@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown Viewer</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.10.2/dist/katex.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.10.2/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.10.2/dist/contrib/auto-render.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display+SC:wght@400;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&display=swap');
+
+        .katex { font-size: 1.15em; }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            /* Light theme (default) */
+            --bg-primary: #f8f9fa;
+            --bg-secondary: white;
+            --bg-tertiary: #f1f3f4;
+            --text-primary: #202124;
+            --text-secondary: #5f6368;
+            --border-color: #dadce0;
+            --border-light: #f1f3f4;
+            --accent-color: #1a73e8;
+            --accent-hover: #1557b0;
+            --accent-bg: #e8f0fe;
+            --hover-bg: #f8f9fa;
+            --modal-overlay: rgba(0, 0, 0, 0.4);
+            --shadow: 0 8px 10px 1px rgba(0,0,0,.14), 0 3px 14px 2px rgba(0,0,0,.12), 0 5px 5px -3px rgba(0,0,0,.2);
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #21262d;
+            --text-primary: #e6edf3;
+            --text-secondary: #7d8590;
+            --border-color: #30363d;
+            --border-light: #21262d;
+            --accent-color: #58a6ff;
+            --accent-hover: #388bfd;
+            --accent-bg: #1c2128;
+            --hover-bg: #21262d;
+            --modal-overlay: rgba(0, 0, 0, 0.6);
+            --shadow: 0 8px 10px 1px rgba(0,0,0,.4), 0 3px 14px 2px rgba(0,0,0,.3), 0 5px 5px -3px rgba(0,0,0,.5);
+        }
+
+        body {
+            font-family: 'Libre Baskerville', 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header h1 {
+            font-family: 'Playfair Display SC', serif;
+            font-size: 22px;
+            font-weight: 400;
+            color: var(--text-primary);
+        }
+        
+        .theme-toggle {
+            background: none;
+            color: var(--accent-color);
+            border: 1px solid var(--border-color);
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .theme-toggle:hover {
+            background: var(--hover-bg);
+        }
+
+        /* Modern scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-tertiary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #666;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        [data-theme="dark"] ::-webkit-scrollbar-thumb {
+            background: #444;
+        }
+
+        [data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        /* Firefox scrollbar */
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: #666 var(--bg-tertiary);
+        }
+
+        [data-theme="dark"] * {
+            scrollbar-color: #444 var(--bg-tertiary);
+        }
+
+        .content-area {
+            background: var(--bg-secondary);
+            min-height: calc(100vh - 73px);
+        }
+
+        .markdown-content {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px;
+            font-family: "Libre Baskerville", serif;
+        }
+
+        .markdown-content h1 { 
+            font-family: 'Playfair Display SC', serif;
+            font-size: 2.5em; 
+            margin-bottom: 1em;
+            color: var(--text-primary);
+            text-align: center;
+        }
+
+        .markdown-content h2 { 
+            font-family: 'Playfair Display SC', serif;
+            font-size: 1.8em; 
+            margin: 1.5em 0 0.8em;
+            color: var(--accent-color);
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 0.5rem;
+        }
+
+        .markdown-content h3 {
+            font-family: 'Playfair Display SC', serif;
+            font-size: 1.5em;
+            margin: 1.2em 0 0.6em;
+            color: var(--accent-hover);
+        }
+        
+        .markdown-content p { 
+            line-height: 1.8; 
+            margin-bottom: 1.2em;
+            text-align: justify;
+            font-size: 1.3em;
+        }
+        
+        .markdown-content ul {
+            list-style: circle;
+            margin: 1.3em 0;
+            padding-left: 2em;
+        }
+
+        .markdown-content li {
+            margin: 0.6em 0;
+            line-height: 1.7;
+            font-size: 1.3em;
+        }
+
+        .markdown-content code { 
+            background: var(--bg-tertiary); 
+            padding: 0.2em 0.4em; 
+            border-radius: 3px;
+            font-family: monospace;
+            color: var(--accent-color);
+        }
+
+        .markdown-content pre { 
+            background: var(--bg-tertiary); 
+            padding: 1.5em; 
+            border-radius: 8px; 
+            overflow-x: auto;
+            border: 1px solid var(--border-color);
+            margin: 1.5em 0;
+            position: relative;
+        }
+
+        .markdown-content pre code {
+            background: none;
+            padding: 0;
+            font-size: 0.95em;
+            line-height: 1.5;
+            color: var(--text-primary);
+            font-family: 'Consolas', 'Monaco', 'Andale Mono', monospace;
+        }
+
+        .markdown-content pre code p {
+            margin: 0;
+            color: var(--accent-color);
+        }
+
+        .markdown-code-lang {
+            font-size:1em;
+            color:var(--text-secondary);
+            position:absolute;
+            top:0;
+            left:10px;
+            max-width:120px;
+            background:var(--bg-tertiary);
+            border-bottom:1px solid var(--border-color);
+            padding:4px 8px;
+            z-index:2;
+            pointer-events:none;
+            border-radius:0 0 6px 6px;
+        }
+
+        .copy-button {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            padding: 4px 8px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: var(--text-secondary);
+            font-size: 12px;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s ease, background-color 0.2s ease;
+        }
+
+        .markdown-content pre:hover .copy-button {
+            opacity: 1;
+        }
+
+        .copy-button:hover {
+            background: var(--hover-bg);
+            color: var(--accent-color);
+        }
+
+        .copy-button.copied {
+            background: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+
+        .markdown-content a {
+            color: var(--accent-color);
+            text-decoration: none;
+        }
+
+        .markdown-content a:hover {
+            color: var(--accent-hover);
+            text-decoration: underline;
+        }
+
+        .error-message {
+            text-align: center;
+            padding: 60px 24px;
+            color: var(--text-secondary);
+        }
+
+        .error-message h3 {
+            margin-bottom: 8px;
+            font-weight: 400;
+            font-size: 18px;
+            color: var(--text-primary);
+        }
+
+        @media (max-width: 768px) {
+            .markdown-content {
+                padding: 20px;
+            }
+
+            .header h1 {
+                font-size: 18px;
+            }
+        }
+    </style>
+    <script>
+        var macros = {};
+        var delimiters = [
+            { left: "$$",  right: "$$",  display: true},
+            { left: "$",   right: "$",   display: false}
+        ];
+    
+        document.addEventListener("DOMContentLoaded", function() {
+            renderMathInElement(document.body, { delimiters: delimiters, macros: macros });
+    
+            document.querySelectorAll("script[type='math/tex']").forEach(function(el) {
+                el.outerHTML = katex.renderToString(el.textContent, { 
+                    displayMode: false, 
+                    macros: macros 
+                });
+            });
+    
+            document.querySelectorAll("script[type='math/tex; mode=display']").forEach(function(el) {
+                el.outerHTML = katex.renderToString(el.textContent.replace(/%.*/g, ''), { 
+                    displayMode: true, 
+                    macros: macros 
+                });
+            });
+        });
+    </script>
+</head>
+<body>
+    <div class="header">
+        <h1>📝 Notes</h1>
+        <button id="themeToggle" class="theme-toggle">
+            <span class="material-icons" style="font-size: 16px; margin-right: 4px;">dark_mode</span>
+            <span class="theme-text">Dark</span>
+        </button>
+    </div>
+
+    <div class="content-area">
+        <div id="content" class="markdown-content">
+            <div class="error-message">
+                <h3>Loading...</h3>
+                <p>Please wait while the content loads.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class ThemeManager {
+            constructor() {
+                this.currentTheme = localStorage.getItem('theme') || 'dark';
+                this.applyTheme();
+                this.updateToggleButton();
+            }
+
+            applyTheme() {
+                document.documentElement.setAttribute('data-theme', this.currentTheme);
+            }
+            
+            updateToggleButton() {
+                const button = document.getElementById('themeToggle');
+                const icon = button.querySelector('.material-icons');
+                const textSpan = button.querySelector('.theme-text');
+                
+                if (this.currentTheme === 'dark') {
+                    icon.textContent = 'dark_mode';
+                    if (textSpan) {
+                        textSpan.textContent = 'Dark';
+                    }
+                } else {
+                    icon.textContent = 'light_mode';
+                    if (textSpan) {
+                        textSpan.textContent = 'Light';
+                    }
+                }
+            }
+
+            toggle() {
+                this.currentTheme = this.currentTheme === 'dark' ? 'light' : 'dark';
+                localStorage.setItem('theme', this.currentTheme);
+                this.applyTheme();
+                this.updateToggleButton();
+            }
+        }
+
+        class MarkdownViewer {
+            constructor() {
+                this.themeManager = new ThemeManager();
+                this.init();
+            }
+
+            init() {
+                // Theme toggle
+                document.getElementById('themeToggle').addEventListener('click', () => {
+                    this.themeManager.toggle();
+                });
+
+                // Load content
+                this.loadContent();
+            }
+
+            async loadKatexMacros() {
+                try {
+                    const response = await fetch('./katexMacros.json');
+                    if (response.ok) {
+                        macros = await response.json();
+                    } else {
+                        console.log('No katexMacros.json found, using default macros');
+                    }
+                } catch (error) {
+                    console.log('Could not load katexMacros.json:', error.message);
+                }
+            }
+
+            async loadMarkdown() {
+                try {
+                    const response = await fetch('./main.md');
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    const text = await response.text();
+                    return text;
+                } catch (error) {
+                    throw new Error(`Could not load main.md: ${error.message}`);
+                }
+            }
+
+            async loadContent() {
+                try {
+                    // Load KaTeX macros first
+                    await this.loadKatexMacros();
+                    
+                    // Load and render markdown
+                    const markdownText = await this.loadMarkdown();
+                    const html = this.renderMarkdown(markdownText);
+                    document.getElementById('content').innerHTML = html;
+                    
+                    // Setup copy buttons
+                    this.setupCopyButtons();
+                    
+                    // Render math
+                    renderMathInElement(document.body, { delimiters: delimiters, macros: macros });
+                    
+                } catch (error) {
+                    console.error('Error loading content:', error);
+                    document.getElementById('content').innerHTML = `
+                        <div class="error-message">
+                            <h3>Error loading content</h3>
+                            <p>${error.message}</p>
+                            <p>Make sure main.md exists in the same directory as this HTML file.</p>
+                        </div>
+                    `;
+                }
+            }
+
+            renderMarkdown(text) {
+                let html = '';
+                const paras = text.split(/\r?\n(\r?\n)+/);
+                
+                for (let para of paras) {
+                    html += this.renderPara(para);
+                }
+                
+                return html;
+            }
+
+            renderPara(para) {
+                let tmpHtml = '<div class="para">';
+                let lastListLevel = -1;
+                let cachedLines = [];
+                let codeBlockOpen = false;
+
+                function closeList() {
+                    if (lastListLevel >= 0) {
+                        for (let i = 0; i <= lastListLevel; i++) {
+                            tmpHtml += `</ul>`;
+                        }
+                        lastListLevel = -1;
+                    }
+                }
+                
+                function renderCachedLines() {
+                    const joinedLines = cachedLines.join(' ').trim();
+                    if (joinedLines.length === 0) return;
+                    tmpHtml += `<p>${joinedLines}</p>`;
+                    cachedLines = [];
+                }
+                
+                for (let line of para.split(/\r?\n/)) {
+                    let trimmedLine = line.trim();
+                    if (trimmedLine.startsWith('+ ') || trimmedLine.startsWith('- ')) {
+                        let thisListLevel = (line.match(/^ */)[0].length) / 4;
+                        
+                        if (thisListLevel < lastListLevel) {
+                            for (let i = 0; i < lastListLevel - thisListLevel; i++) {
+                                tmpHtml += `</ul>`;
+                            }
+                        }
+                        
+                        if (thisListLevel > lastListLevel) {
+                            for (let i = 0; i < thisListLevel - lastListLevel; i++) {
+                                tmpHtml += `<ul>`;
+                            }
+                        }
+                        
+                        tmpHtml += `<li>${trimmedLine.substring(2)}</li>`;
+                        lastListLevel = thisListLevel;
+                        continue;
+                    }
+                    
+                    closeList();
+                    
+                    if (line.startsWith('# ')) {
+                        renderCachedLines();
+                        tmpHtml += `<h1>${line.substring(2).trim()}</h1>`;
+                    } else if (line.startsWith('## ')) {
+                        renderCachedLines();
+                        const headingText = line.substring(3).trim();
+                        tmpHtml += `<h2>${headingText}</h2>`;
+                    } else if (line.startsWith('### ')) {
+                        renderCachedLines();
+                        const headingText = line.substring(4).trim();
+                        tmpHtml += `<h3>${headingText}</h3>`;
+                    } else if (line.startsWith('```')) {
+                        renderCachedLines();
+                        if (codeBlockOpen) {
+                            tmpHtml += `<button class="copy-button">Copy</button></code></pre>`;
+                            codeBlockOpen = false;
+                        } else {
+                            const lang = trimmedLine.substring(3).trim();
+                            tmpHtml += '<pre>';
+                            if (lang) {
+                                tmpHtml += `<div class="markdown-code-lang">${lang}</div>`;
+                            }
+                            tmpHtml += '<code>';
+                            codeBlockOpen = true;
+                        }
+                    } else {
+                        cachedLines.push(line);
+                    }
+                }
+                
+                closeList();
+                renderCachedLines();
+                tmpHtml += '</div>';
+                return tmpHtml;
+            }
+
+            setupCopyButtons() {
+                document.querySelectorAll('.copy-button').forEach(button => {
+                    button.addEventListener('click', async () => {
+                        const codeBlock = button.previousElementSibling;
+                        const code = codeBlock.textContent;
+                        
+                        try {
+                            await navigator.clipboard.writeText(code);
+                            button.textContent = 'Copied!';
+                            button.classList.add('copied');
+                            
+                            setTimeout(() => {
+                                button.textContent = 'Copy';
+                                button.classList.remove('copied');
+                            }, 2000);
+                        } catch (err) {
+                            console.error('Failed to copy code:', err);
+                            button.textContent = 'Error!';
+                            
+                            setTimeout(() => {
+                                button.textContent = 'Copy';
+                            }, 2000);
+                        }
+                    });
+                });
+            }
+        }
+
+        // Initialize when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            new MarkdownViewer();
+        });
+    </script>
+</body>
+</html>
