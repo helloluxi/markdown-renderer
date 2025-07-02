@@ -1,4 +1,4 @@
-{
+const katexMacros = {
   "\\ket": "\\lvert #1 \\rangle",
   "\\bra": "\\langle #1 \\rvert", 
   "\\ip": "\\langle #1 | #2 \\rangle",
@@ -35,4 +35,4 @@
   "\\C": "\\mathbb{C}",
   "\\Z": "\\mathbb{Z}",
   "\\N": "\\mathbb{N}"
-}
+};
