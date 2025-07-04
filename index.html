@@ -185,6 +185,12 @@
             padding-left: 2em;
         }
 
+        .markdown-content ol {
+            list-style: decimal;
+            margin: 1.3em 0;
+            padding-left: 2em;
+        }
+
         .markdown-content li {
             margin: 0.6em 0;
             line-height: 1.7;
@@ -386,6 +392,7 @@
         class MarkdownViewer {
             constructor() {
                 this.themeManager = new ThemeManager();
+                this.globalNumberCounter = 1;
                 this.loadKatexMacros();
                 this.loadContent();
                 
@@ -453,17 +460,20 @@
             renderPara(para) {
                 let tmpHtml = '<div class="para">';
                 let lastListLevel = -1;
+                let listTypeStack = []; // Track list types at each level
                 let cachedLines = [];
                 let codeBlockOpen = false;
 
-                function closeList() {
+                const closeList = () => {
                     if (lastListLevel >= 0) {
                         for (let i = 0; i <= lastListLevel; i++) {
-                            tmpHtml += `</ul>`;
+                            const listType = listTypeStack.pop() || 'ul';
+                            tmpHtml += `</${listType}>`;
                         }
                         lastListLevel = -1;
+                        listTypeStack = [];
                     }
-                }
+                };
                 
                 function renderCachedLines() {
                     const joinedLines = cachedLines.join(' ').trim();
@@ -474,22 +484,38 @@
                 
                 for (let line of para.split(/\r?\n/)) {
                     let trimmedLine = line.trim();
+                    
+                    // Handle \resetnumber command
+                    if (trimmedLine === '\\resetnumber') {
+                        this.globalNumberCounter = 1;
+                        continue;
+                    }
+                    
                     if (trimmedLine.startsWith('+ ') || trimmedLine.startsWith('- ')) {
                         let thisListLevel = (line.match(/^ */)[0].length) / 4;
+                        let isNumbered = trimmedLine.startsWith('+ ');
+                        let listType = isNumbered ? 'ol' : 'ul';
                         
                         if (thisListLevel < lastListLevel) {
                             for (let i = 0; i < lastListLevel - thisListLevel; i++) {
-                                tmpHtml += `</ul>`;
+                                const closingType = listTypeStack.pop() || 'ul';
+                                tmpHtml += `</${closingType}>`;
                             }
                         }
                         
                         if (thisListLevel > lastListLevel) {
                             for (let i = 0; i < thisListLevel - lastListLevel; i++) {
-                                tmpHtml += `<ul>`;
+                                tmpHtml += `<${listType}>`;
+                                listTypeStack.push(listType);
                             }
                         }
                         
-                        tmpHtml += `<li>${trimmedLine.substring(2)}</li>`;
+                        if (isNumbered) {
+                            tmpHtml += `<li value="${this.globalNumberCounter}">${trimmedLine.substring(2)}</li>`;
+                            this.globalNumberCounter++;
+                        } else {
+                            tmpHtml += `<li>${trimmedLine.substring(2)}</li>`;
+                        }
                         lastListLevel = thisListLevel;
                         continue;
                     }
